@@ -1,0 +1,288 @@
+import 'dart:async';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:untitled/controller/MobileUserController.dart';
+import 'package:untitled/helper/EmailHelper.dart';
+import 'package:untitled/models/mobileuser/MobileUser.dart';
+import 'package:untitled/screens/registerScreen/RegisterDataDiriScreen.dart';
+import 'package:untitled/validators/RegisterPasswordValidator.dart';
+
+class RegisterPasswordScreen extends StatefulWidget {
+  const RegisterPasswordScreen({super.key});
+
+  @override
+  State<RegisterPasswordScreen> createState() => _RegisterPasswordScreenState();
+}
+
+class _RegisterPasswordScreenState extends State<RegisterPasswordScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  bool isLoading = false;
+  String loadingText = "Loading";
+  Timer? _timer;
+
+  void _startLoadingText() {
+    int dotCount = 1;
+    _timer = Timer.periodic(Duration(milliseconds: 500), (timer) {
+      setState(() {
+        loadingText = "Loading" + "." * dotCount;
+        dotCount = (dotCount % 3) + 1;
+      });
+    });
+  }
+
+  Future<void> confirmValidation() async {
+    if (_passwordController.text == _confirmPasswordController.text) {
+
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Password Berbeda')));
+    }
+  }
+
+  Future<void> _getMobileUser() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    _startLoadingText();
+
+    String email = await EmailHelper.getEmail();
+
+    await confirmValidation();
+
+    MobileUser? mobileUser = await MobileUserController.createMobileUser(email, _passwordController.text);
+    if (mobileUser != null) {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('idMobileUser', mobileUser.idMobileUser);
+    }
+
+    setState(() {
+      isLoading = false;
+    });
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const RegisterDataDiriScreen()),
+    );
+  }
+
+  @override
+  void initState(){
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(
+          'Kembali',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        backgroundColor: Colors.transparent,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.pink[900]!, Colors.pink],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
+      ),
+      floatingActionButton: Align(
+        alignment: Alignment.bottomRight,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.4,
+          height: MediaQuery.of(context).size.height * 0.06,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(25),
+            gradient: LinearGradient(
+              colors: [Colors.pink[900]!, Colors.pink],
+            ),
+          ),
+          child: ElevatedButton(
+            onPressed: () {
+              if (_formKey.currentState?.validate() ?? false) {
+                _getMobileUser();
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              elevation: 0,
+              padding: EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+              backgroundColor: Colors.transparent,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(50),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isLoading)
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(color: Colors.white),
+                  )
+                else
+                  Icon(Icons.arrow_forward, color: Colors.white),
+                SizedBox(width: 10),
+                Text(
+                  isLoading ? loadingText : 'Berikutnya',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+      resizeToAvoidBottomInset: false,
+      body: GestureDetector(
+        onTap: () {
+          FocusScope.of(context).requestFocus(FocusNode());
+        },
+        child: SingleChildScrollView(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                height: MediaQuery.of(context).size.height * 0.3,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.pink[900]!, Colors.pink],
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircleAvatar(
+                      radius: 65.0,
+                      backgroundImage: AssetImage('assets/logo.png'),
+                      backgroundColor: Colors.white,
+                    ),
+                    SizedBox(height: 10.0),
+                    Text(
+                      'Buat Akun',
+                      style: TextStyle(color: Colors.white, fontSize: 32),
+                    ),
+                    Text(
+                      'Masukkan password Anda',
+                      style: TextStyle(color: Colors.white, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: double.infinity,
+                child: Padding(
+                  padding: EdgeInsets.all(20.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 20.0),
+                        Padding(
+                          padding: EdgeInsets.only(left: 15),
+                          child: Text(
+                            'Password',
+                            style: TextStyle(
+                              color: Colors.pinkAccent[700],
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        TextFormField(
+                          obscureText: true,
+                          controller: _passwordController,
+                          cursorColor: Colors.black87,
+                          style: TextStyle(color: Colors.black87),
+                          decoration: InputDecoration(
+                            labelStyle: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                              borderSide: BorderSide(color: Colors.grey),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                              borderSide: BorderSide(color: Colors.grey),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                              borderSide: BorderSide(color: Colors.red),
+                            ),
+                            focusedErrorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                              borderSide: BorderSide(color: Colors.red),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.withOpacity(0.1),
+                            contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+                          ),
+                          validator: (value) => RegisterPasswordValidator.validatePassword(value),
+                        ),
+                        SizedBox(height: 20.0),
+                        Padding(
+                          padding: EdgeInsets.only(left: 15),
+                          child: Text(
+                            'Konfirmasi Password',
+                            style: TextStyle(
+                              color: Colors.pinkAccent[700],
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        TextFormField(
+                          obscureText: true,
+                          controller: _confirmPasswordController,
+                          cursorColor: Colors.black87,
+                          style: TextStyle(color: Colors.black87),
+                          decoration: InputDecoration(
+                            labelStyle: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                              borderSide: BorderSide(color: Colors.grey),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                              borderSide: BorderSide(color: Colors.grey),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                              borderSide: BorderSide(color: Colors.red),
+                            ),
+                            focusedErrorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.all(Radius.circular(12.0)),
+                              borderSide: BorderSide(color: Colors.red),
+                            ),
+                            filled: true,
+                            fillColor: Colors.grey.withOpacity(0.1),
+                            contentPadding: EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+                          ),
+                          validator: (value) => RegisterPasswordValidator.validateConfirmPassword(value, _passwordController.text),
+                        ),
+                        SizedBox(height: MediaQuery.of(context).size.height * 0.1)
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
